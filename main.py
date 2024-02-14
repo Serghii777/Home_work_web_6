@@ -9,12 +9,9 @@ from professors_table import create_professors_table
 from subjects_table import create_subjects_table
 from grades_table import create_grades_table
 
-logger = logging.getLogger()
-stream_handler = logging.StreamHandler()
-formatter = logging.Formatter('line_num: %(lineno)s > %(message)s')
-stream_handler.setFormatter(formatter)
-logger.addHandler(stream_handler)
-logger.setLevel(logging.DEBUG)
+# Налаштування логування
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def generate_fake_data(conn, amount_students, amount_groups, amount_professors, amount_subjects, max_grades_per_student):
     fake_data = Faker()
@@ -55,26 +52,39 @@ def generate_fake_data(conn, amount_students, amount_groups, amount_professors, 
 
 def main(query_file):
     with sqlite3.connect("mydatabase.db") as conn:
-        create_students_table()
-        create_groups_table()
-        create_professors_table()
-        create_subjects_table()
-        create_grades_table()
-        
+        try:
+            create_students_table()
+            create_groups_table()
+            create_professors_table()
+            create_subjects_table()
+            create_grades_table()
+        except Exception as e:
+            logger.error("An error occurred while creating tables: %s", e)
+            sys.exit(1)
+
         # Виклик функції для заповнення таблиць випадковими даними
-        generate_fake_data(conn, 50, 3, 5, 8, 20)
+        try:
+            generate_fake_data(conn, 50, 3, 5, 8, 20)
+        except Exception as e:
+            logger.error("An error occurred while generating fake data: %s", e)
+            sys.exit(1)
 
         # Виконання SQL-запиту з файлу
-        with open(query_file, 'r') as file:
-            sql_query = file.read()
-            cursor = conn.cursor()
-            cursor.execute(sql_query)
-            results = cursor.fetchall()
-            print(results)
-            
+        try:
+            with open(query_file, 'r') as file:
+                sql_query = file.read()
+                cursor = conn.cursor()
+                cursor.execute(sql_query)
+                results = cursor.fetchall()
+                print(results)
+        except Exception as e:
+            logger.error("An error occurred while executing SQL query: %s", e)
+            sys.exit(1)
+
 if __name__ == "__main__":
     if len(sys.argv) != 2:
         print("Usage: python main.py query_file_number.sql")
+        sys.exit(1)
     else:
         query_file = sys.argv[1]
         main(query_file)
